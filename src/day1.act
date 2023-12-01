@@ -1,0 +1,130 @@
+
+import argparse
+import file
+import testing
+
+spelled_digits = {
+        "zero": "0",
+        "one": "1",
+        "two": "2",
+        "three": "3",
+        "four": "4",
+        "five": "5",
+        "six": "6",
+        "seven": "7",
+        "eight": "8",
+        "nine": "9",
+        }
+
+def get_calibration_value(lines: list[str]) -> int:
+    total = 0
+    for rawline in lines:
+        line = rawline
+
+        # Start by finding the leftmost and rightmost digits
+        leftmost = None
+        leftpos = len(line)
+        rightmost = None
+        rightpos = 0
+        i = 0
+        for char in line:
+            if char.isdecimal():
+                if leftmost is None:
+                    leftmost = char
+                    leftpos = i
+                rightmost = char
+                rightpos = i
+            i += 1
+
+        # Search to the left of the leftmost digits to find the first spelled
+        # digit
+        for word, digit in spelled_digits.items():
+            match = line.find(word, None, leftpos+1)
+            if match != -1:
+                leftmost = digit
+                leftpos = match
+
+        # Search to the right of the rightmost digits to find the last spelled
+        for word, digit in spelled_digits.items():
+            match = line.rfind(word, rightpos, None)
+            if match != -1:
+                rightmost = digit
+                rightpos = match
+
+        if leftmost is not None and rightmost is not None:
+            linesum = int(leftmost + rightmost)
+            total += linesum
+        else:
+            raise ValueError("Didn't find digits in line")
+    return total
+
+def _test_get_calibration_values():
+    example_input = [
+            "1abc2",
+            "pqr3stu8vwx",
+            "a1b2c3d4e5f",
+            "treb7uchet",
+            ]
+    testing.assertEqual(142, get_calibration_value(example_input), "")
+
+def _test_get_calibration_values_words():
+    example_input = [
+            "two1nine",
+            "eightwothree",
+            "abcone2threexyz",
+            "xtwone3four",
+            "4nineeightseven2",
+            "zoneight234",
+            "7pqrstsixteen",
+            ]
+    testing.assertEqual(281, get_calibration_value(example_input), "")
+
+def _test_get_calibration_values_tricky():
+    # This one is tricky because even if we just find the eight on the leftmost
+    # side of digits, if we do a replace so we replace it throughout the string,
+    # it will also replace the one on the right side where it overwrites the "t"
+    # in "two". The last digit is really "two" so we get the wrong result.
+    example_input = [
+            "adaeight37eightwo",
+        ]
+
+    testing.assertEqual(82, get_calibration_value(example_input), "")
+
+actor main(env):
+
+    def _parse_args():
+        p = argparse.Parser()
+        p.add_arg("inputfile", "input file", "?")
+        return p.parse(env.argv)
+
+    def _main(args: argparse.Args):
+        filename = args.get_str("inputfile")
+        # Refine capability for reading file from the world cap
+        readfile_cap = file.ReadFileCap(file.FileCap(env.cap))
+        rf = file.ReadFile(readfile_cap, filename)
+        my_input = rf.read().decode()
+        rf.close()
+        print(get_calibration_value(my_input.splitlines(None)))
+        env.exit(0)
+
+    try:
+        _args = _parse_args()
+        _main(_args)
+    except argparse.PrintUsage as exc:
+        print(exc)
+        env.exit(0)
+    except argparse.ArgumentError as exc:
+        print(exc)
+        env.exit(1)
+
+# For anyone else reading this, this is not idiomatic Acton. It's temporary
+# before the testing framework is done. In the future, tests will be
+# automatically discovered and run through `actonc test`.
+__unit_tests: dict[str, testing.UnitTest] = {
+    "_test_calibration_values": testing.UnitTest(_test_get_calibration_values, "test_get_calibration_values", "Test getting calibration values"),
+    "_test_calibration_values_words": testing.UnitTest(_test_get_calibration_values_words, "test_get_calibration_values_words", "Test getting calibration values with spelled digits"),
+    "_test_calibration_values_tricky": testing.UnitTest(_test_get_calibration_values_tricky, "test_get_calibration_values_tricky", "Test getting calibration values with spelled digits"),
+}
+
+actor __test_main(env):
+    testing.test_runner(env, __unit_tests, {}, {}, {})

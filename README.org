@@ -1,0 +1,15 @@
+* Advent of Code 2023 - Powered by Acton
+
+** Compile
+
+#+BEGIN_SRC shell
+actonc build
+#+END_SRC
+
+
+** Run
+
+#+BEGIN_SRC shell
+out/rel/bin/day1
+#+END_SRC
+
